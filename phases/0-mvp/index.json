@@ -1,0 +1,14 @@
+{
+  "project": "YT 댓글 인사이트",
+  "phase": "mvp",
+  "steps": [
+    { "step": 0, "name": "project-setup", "status": "pending" },
+    { "step": 1, "name": "types-and-storage", "status": "pending" },
+    { "step": 2, "name": "youtube-url-parsing", "status": "pending" },
+    { "step": 3, "name": "youtube-service", "status": "pending" },
+    { "step": 4, "name": "claude-service", "status": "pending" },
+    { "step": 5, "name": "settings-and-header-ui", "status": "pending" },
+    { "step": 6, "name": "analysis-pipeline-ui", "status": "pending" },
+    { "step": 7, "name": "report-view-ui", "status": "pending" }
+  ]
+}
