@@ -10,6 +10,7 @@ import argparse
 import contextlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -79,10 +80,13 @@ class StepExecutor:
         self._project = idx.get("project", "project")
         self._phase_name = idx.get("phase", phase_dir_name)
         self._total = len(idx["steps"])
+        self._claude_path = "claude"
 
     def run(self):
         self._print_header()
         self._check_blockers()
+        self._claude_path = self._resolve_claude_path()
+        self._ensure_clean_tree()
         self._checkout_branch()
         guardrails = self._load_guardrails()
         self._ensure_created_at()
@@ -108,7 +112,22 @@ class StepExecutor:
 
     def _run_git(self, *args) -> subprocess.CompletedProcess:
         cmd = ["git"] + list(args)
-        return subprocess.run(cmd, cwd=self._root, capture_output=True, text=True)
+        return subprocess.run(
+            cmd, cwd=self._root, capture_output=True, text=True,
+            encoding="utf-8", errors="replace",
+        )
+
+    def _ensure_clean_tree(self):
+        r = self._run_git("status", "--porcelain")
+        if r.returncode != 0:
+            return  # _checkout_branch가 곧 "not a git repo" 에러를 명확히 낼 것
+        dirty = r.stdout.strip()
+        if dirty:
+            print(f"\n  ERROR: 작업 트리에 커밋되지 않은 변경사항이 있습니다:")
+            for line in dirty.splitlines():
+                print(f"    {line}")
+            print(f"  Hint: 변경사항을 커밋하거나 stash한 뒤 다시 실행하세요.")
+            sys.exit(1)
 
     def _checkout_branch(self):
         branch = f"feat-{self._phase_name}"
@@ -178,11 +197,11 @@ class StepExecutor:
         sections = []
         claude_md = ROOT / "CLAUDE.md"
         if claude_md.exists():
-            sections.append(f"## 프로젝트 규칙 (CLAUDE.md)\n\n{claude_md.read_text()}")
+            sections.append(f"## 프로젝트 규칙 (CLAUDE.md)\n\n{claude_md.read_text(encoding='utf-8')}")
         docs_dir = ROOT / "docs"
         if docs_dir.is_dir():
             for doc in sorted(docs_dir.glob("*.md")):
-                sections.append(f"## {doc.stem}\n\n{doc.read_text()}")
+                sections.append(f"## {doc.stem}\n\n{doc.read_text(encoding='utf-8')}")
         return "\n\n---\n\n".join(sections) if sections else ""
 
     @staticmethod
@@ -226,6 +245,13 @@ class StepExecutor:
 
     # --- Claude 호출 ---
 
+    def _resolve_claude_path(self) -> str:
+        path = shutil.which("claude")
+        if path is None:
+            print("\n  ERROR: 'claude' CLI를 찾을 수 없습니다. PATH를 확인하세요.")
+            sys.exit(1)
+        return path
+
     def _invoke_claude(self, step: dict, preamble: str) -> dict:
         step_num, step_name = step["step"], step["name"]
         step_file = self._phase_dir / f"step{step_num}.md"
@@ -234,24 +260,36 @@ class StepExecutor:
             print(f"  ERROR: {step_file} not found")
             sys.exit(1)
 
-        prompt = preamble + step_file.read_text()
-        result = subprocess.run(
-            ["claude", "-p", "--dangerously-skip-permissions", "--output-format", "json", prompt],
-            cwd=self._root, capture_output=True, text=True, timeout=1800,
-        )
+        prompt = preamble + step_file.read_text(encoding="utf-8")
+        cmd = [self._claude_path, "-p", "--dangerously-skip-permissions", "--output-format", "json", prompt]
+        # Windows npm 글로벌 설치본은 .cmd/.ps1 셔임인 경우가 많아 shell 없이는 실행되지 않는다.
+        use_shell = os.name == "nt" and Path(self._claude_path).suffix.lower() != ".exe"
 
-        if result.returncode != 0:
-            print(f"\n  WARN: Claude가 비정상 종료됨 (code {result.returncode})")
-            if result.stderr:
-                print(f"  stderr: {result.stderr[:500]}")
+        try:
+            result = subprocess.run(
+                cmd, cwd=self._root, capture_output=True, text=True,
+                encoding="utf-8", errors="replace", timeout=1800, shell=use_shell,
+            )
+            returncode, stdout, stderr = result.returncode, result.stdout, result.stderr
+        except FileNotFoundError as e:
+            returncode, stdout = -1, ""
+            stderr = f"claude CLI 실행 실패 (FileNotFoundError): {e}"
+        except subprocess.TimeoutExpired as e:
+            returncode, stdout = -2, e.stdout or ""
+            stderr = f"claude CLI 타임아웃 (1800초 초과): {e}"
+
+        if returncode != 0:
+            print(f"\n  WARN: Claude가 비정상 종료됨 (code {returncode})")
+            if stderr:
+                print(f"  stderr: {stderr[:500]}")
 
         output = {
             "step": step_num, "name": step_name,
-            "exitCode": result.returncode,
-            "stdout": result.stdout, "stderr": result.stderr,
+            "exitCode": returncode,
+            "stdout": stdout, "stderr": stderr,
         }
         out_path = self._phase_dir / f"step{step_num}-output.json"
-        with open(out_path, "w") as f:
+        with open(out_path, "w", encoding="utf-8") as f:
             json.dump(output, f, indent=2, ensure_ascii=False)
 
         return output
