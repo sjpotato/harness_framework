@@ -1,9 +1,10 @@
 # UI 디자인 가이드
 
 ## 디자인 원칙
-1. {원칙 1 — 예: "도구처럼 보여야 한다. 마케팅 페이지가 아니라 매일 쓰는 대시보드."}
-2. {원칙 2}
-3. {원칙 3}
+1. 도구처럼 보여야 한다 — 마케팅 랜딩 페이지가 아니라 매일 켜보는 분석 대시보드.
+2. 정보 밀도 우선 — 장식보다 리포트 데이터(비율, 테마, 인용, 피드백)가 한눈에 읽혀야 한다.
+3. 핵심 플로우는 (URL 입력) → (리포트) 2단계로 끝난다. 중간 단계·모달·마법사 없음. 단, 새 URL 입력과 설정 진입은 상단 고정 헤더를 통해 모든 화면에서 항상 열려 있어야 한다 — "뒤로가기"가 필요한 구조를 만들지 않는다.
+4. 정보는 색상 하나에만 기대지 않는다 — 감정처럼 색으로 구분하는 정보는 항상 텍스트/숫자를 함께 표기한다(색맹 사용자 고려).
 
 ## AI 슬롭 안티패턴 — 하지 마라
 | 금지 사항 | 이유 |
@@ -20,57 +21,79 @@
 ### 배경
 | 용도 | 값 |
 |------|------|
-| 페이지 | {예: #0a0a0a} |
-| 카드 | {예: #141414} |
+| 페이지 | #0a0a0a |
+| 카드 | #141414 |
 
 ### 텍스트
 | 용도 | 값 |
 |------|------|
-| 주 텍스트 | {예: text-white} |
-| 본문 | {예: text-neutral-300} |
-| 보조 | {예: text-neutral-400} |
-| 비활성 | {예: text-neutral-500} |
+| 주 텍스트 | text-white |
+| 본문 | text-neutral-300 |
+| 보조 | text-neutral-400 |
+| 비활성 | text-neutral-500 |
 
 ### 데이터/시맨틱 색상
 | 용도 | 값 |
 |------|------|
-| {긍정/성공} | {예: #22c55e} |
-| {부정/에러} | {예: #ef4444} |
-| {중립/기본} | {예: #525252} |
+| 긍정 | #22c55e |
+| 부정 | #ef4444 |
+| 중립 | #737373 |
+
+감정 비율 시각화(막대/도넛 등) 외에는 시맨틱 컬러를 장식용으로 쓰지 않는다.
 
 ## 컴포넌트
 ### 카드
 ```
-{예: rounded-lg bg-[#141414] border border-neutral-800 p-6}
+rounded-lg bg-[#141414] border border-neutral-800 p-6
 ```
 
 ### 버튼
 ```
-Primary: {예: rounded-lg bg-white text-black hover:bg-neutral-200}
-Text:    {예: text-neutral-500 hover:text-neutral-300}
+Primary: rounded-lg bg-white text-black hover:bg-neutral-200 px-4 py-2
+Text:    text-neutral-500 hover:text-neutral-300
+취소:    text-neutral-500 hover:text-neutral-300 (로딩 상태 옆에 텍스트 버튼으로, 눈에 띄되 과장되지 않게)
+```
+
+### 영상 정보 카드 (리포트 상단)
+```
+rounded-lg bg-[#141414] border border-neutral-800 p-4
+썸네일(가로 120px 내외) + 제목(text-sm text-neutral-300, 2줄 말줄임) + "OO시 OO분 기준" 타임스탬프(text-neutral-500)
 ```
 
 ### 입력 필드
 ```
-{예: rounded-lg bg-neutral-900 border border-neutral-800 px-4 py-3}
+rounded-lg bg-neutral-900 border border-neutral-800 px-4 py-3 text-white placeholder:text-neutral-600
+focus: border-neutral-600 (outline 대신 border 색상 변경)
 ```
 
 ## 레이아웃
-- 전체 너비: {예: max-w-5xl}
-- 정렬: {예: 좌측 정렬 기본. 중앙 정렬 금지}
-- 간격: {예: gap-3~4, 섹션 간 space-y-8}
+- 전체 너비: max-w-2xl (URL 입력 화면), max-w-4xl (리포트 화면)
+- 정렬: 좌측 정렬 기본. 중앙 정렬은 최초 URL 입력 화면(빈 상태)에만 허용.
+- 간격: gap-3~4, 섹션 간 space-y-8
+
+## 네비게이션 (상단 고정 헤더)
+- 키가 설정된 이후의 모든 화면(URL 입력/로딩/리포트/에러) 상단에 얇은 헤더를 고정한다: 좌측에 앱 이름, 가운데~우측에 컴팩트한 URL 입력창, 맨 우측에 설정(⚙) 아이콘.
+- 헤더는 `border-b border-neutral-800`으로만 구분하고, 그림자·블러 없이 배경색과 동일하게 유지한다(스크롤에 떠 있는 느낌이되 장식처럼 보이지 않게).
+- 설정 아이콘은 라벨 없이 아이콘만 두되, hover 시 `text-neutral-300`으로만 변화 — 배지나 강조색 없음.
 
 ## 타이포그래피
 | 용도 | 스타일 |
 |------|--------|
-| 페이지 제목 | {예: text-4xl font-semibold text-white} |
-| 카드 제목 | {예: text-sm font-medium text-neutral-400} |
-| 본문 | {예: text-sm text-neutral-300 leading-relaxed} |
+| 페이지 제목 | text-2xl font-semibold text-white |
+| 카드 제목 | text-sm font-medium text-neutral-400 |
+| 본문 | text-sm text-neutral-300 leading-relaxed |
+| 숫자/지표(감정 비율 %) | text-3xl font-semibold tabular-nums |
 
 ## 애니메이션
-- {허용할 애니메이션만 나열. 예: fade-in (0.4s), slide-up (0.5s)}
-- {그 외 모든 애니메이션 금지}
+- fade-in (0.2s) — 리포트 로딩 완료 시 콘텐츠 등장에만 사용.
+- 그 외 모든 애니메이션(스피너 회전 제외) 금지.
 
 ## 아이콘
-- {예: SVG 인라인, strokeWidth 1.5}
-- {예: 아이콘 컨테이너(둥근 배경 박스)로 감싸지 않는다}
+- SVG 인라인, strokeWidth 1.5.
+- 아이콘 컨테이너(둥근 배경 박스)로 감싸지 않는다.
+
+## 로딩/에러 상태
+- 댓글 수집 중 / Claude 분석 중은 별도 단계로 명확히 구분해 표시한다 (예: "댓글 100개 수집 중..." → "분석 중...").
+- 두 로딩 단계 모두 스피너 옆에 "취소" 텍스트 버튼을 함께 둔다. 분석(Claude) 단계의 취소는 "결과를 기다리지 않고 나가기"에 가깝다는 걸 문구로 짧게 알린다(예: "취소" 버튼 근처에 "이미 시작된 분석 요청은 백그라운드에서 계속될 수 있어요" 같은 보조 문구, 강조하지 않는 크기로).
+- API 키 미입력, 쿼터 초과, 댓글 없는 영상 등은 각각 다른 안내 문구로 처리한다. 뭉뚱그려 "오류가 발생했습니다"로 끝내지 않는다.
+- 표본이 5개 미만인 리포트는 상단에 옅은 톤(중립 회색, 경고색 아님)의 caveat 문구를 붙인다 — 에러가 아니라 참고 정보이므로 부정 색상(#ef4444)을 쓰지 않는다.
