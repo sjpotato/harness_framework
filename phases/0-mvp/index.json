@@ -5,8 +5,9 @@
     {
       "step": 0,
       "name": "project-setup",
-      "status": "pending",
-      "started_at": "2026-09-01T16:47:28+0900"
+      "status": "completed",
+      "started_at": "2026-09-01T16:47:28+0900",
+      "summary": "Vite+React18+TS(strict) SPA 스캐폴딩: Tailwind(UI_GUIDE 색상 토큰 포함)·ESLint·Vitest 구성, src/{components,types,lib,services} 빈 디렉토리 생성, 다크모드 placeholder App.tsx"
     },
     {
       "step": 1,
