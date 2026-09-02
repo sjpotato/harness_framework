@@ -17,6 +17,37 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent))
 import execute as ex
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+# ---------------------------------------------------------------------------
+# stdout/stderr UTF-8 강제 (Windows cp949 콘솔에서 실제로 크래시했던 버그)
+# ---------------------------------------------------------------------------
+
+class TestStdoutEncoding:
+    def test_reconfigured_to_utf8_in_subprocess(self):
+        # execute.py를 실제 서브프로세스로 import해 sys.stdout.encoding을 확인한다.
+        # pytest의 capsys는 stdout을 자체 캡처 객체로 바꿔치기하므로 이 버그를 못 잡는다 —
+        # 반드시 별도 프로세스로 검증해야 한다.
+        result = subprocess.run(
+            [sys.executable, "-c", "import sys; sys.path.insert(0, 'scripts'); import execute; print(sys.stdout.encoding)"],
+            cwd=str(REPO_ROOT), capture_output=True, text=True,
+            encoding="utf-8", errors="replace",
+        )
+        assert result.returncode == 0
+        assert "utf-8" in result.stdout.strip().lower()
+
+    def test_printing_replacement_character_does_not_crash(self):
+        # errors="replace" 디코딩으로 생길 수 있는 U+FFFD를 print()가 그대로 죽이지 않는지 확인.
+        # cp949 등 레거시 코드페이지는 U+FFFD를 인코딩할 수 없어 이전에는 UnicodeEncodeError로 크래시했다.
+        result = subprocess.run(
+            [sys.executable, "-c", "import sys; sys.path.insert(0, 'scripts'); import execute; print('\\ufffd' * 5)"],
+            cwd=str(REPO_ROOT), capture_output=True, text=True,
+            encoding="utf-8", errors="replace",
+        )
+        assert result.returncode == 0
+        assert "UnicodeEncodeError" not in result.stderr
+
 
 # ---------------------------------------------------------------------------
 # Fixtures

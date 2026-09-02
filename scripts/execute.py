@@ -20,6 +20,12 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional
 
+# Windows 콘솔 기본 코드페이지(cp949 등)는 이 스크립트가 다루는 한글/이모지/치환 문자(U+FFFD)를
+# 인코딩하지 못해 print()가 그대로 크래시할 수 있다. stdout/stderr를 UTF-8로 강제한다.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = Path(__file__).resolve().parent.parent
 
 
