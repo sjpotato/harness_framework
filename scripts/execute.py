@@ -267,13 +267,16 @@ class StepExecutor:
             sys.exit(1)
 
         prompt = preamble + step_file.read_text(encoding="utf-8")
-        cmd = [self._claude_path, "-p", "--dangerously-skip-permissions", "--output-format", "json", prompt]
+        # 프롬프트는 커맨드라인 인자가 아니라 stdin으로 전달한다. 가드레일(CLAUDE.md+docs/*.md)까지
+        # 합치면 수만 자를 쉽게 넘기는데, 인자로 넘기면 Windows cmd.exe의 명령줄 길이 제한(약 8191자)에
+        # 걸려 claude가 즉시 실패한다(실제로 이 프로젝트에서 재현됨). stdin에는 그런 제약이 없다.
+        cmd = [self._claude_path, "-p", "--dangerously-skip-permissions", "--output-format", "json"]
         # Windows npm 글로벌 설치본은 .cmd/.ps1 셔임인 경우가 많아 shell 없이는 실행되지 않는다.
         use_shell = os.name == "nt" and Path(self._claude_path).suffix.lower() != ".exe"
 
         try:
             result = subprocess.run(
-                cmd, cwd=self._root, capture_output=True, text=True,
+                cmd, cwd=self._root, input=prompt, capture_output=True, text=True,
                 encoding="utf-8", errors="replace", timeout=1800, shell=use_shell,
             )
             returncode, stdout, stderr = result.returncode, result.stdout, result.stderr

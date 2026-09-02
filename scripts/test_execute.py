@@ -476,8 +476,27 @@ class TestInvokeClaude:
         assert "-p" in cmd
         assert "--dangerously-skip-permissions" in cmd
         assert "--output-format" in cmd
-        assert "PREAMBLE" in cmd[-1]
-        assert "UI를 구현하세요" in cmd[-1]
+        # 프롬프트는 커맨드라인 인자가 아니라 stdin(input=)으로 전달돼야 한다 —
+        # 인자로 넘기면 Windows cmd.exe 명령줄 길이 제한에 걸려 큰 프롬프트가 즉시 실패한다.
+        assert all("PREAMBLE" not in arg and "UI를 구현하세요" not in arg for arg in cmd)
+        prompt_input = mock_run.call_args[1]["input"]
+        assert "PREAMBLE" in prompt_input
+        assert "UI를 구현하세요" in prompt_input
+
+    def test_large_prompt_never_becomes_a_cli_argument(self, executor):
+        # Windows cmd.exe의 명령줄 길이 제한(약 8191자)을 넘는 가드레일+step 프롬프트를
+        # 인자로 넘기면 claude가 즉시 실패하던 버그의 회귀 테스트.
+        mock_result = MagicMock(returncode=0, stdout='{"result": "ok"}', stderr="")
+        step = {"step": 2, "name": "ui"}
+        huge_preamble = "X" * 20000
+
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
+            executor._invoke_claude(step, huge_preamble)
+
+        cmd = mock_run.call_args[0][0]
+        total_arg_len = sum(len(arg) for arg in cmd)
+        assert total_arg_len < 8191
+        assert len(mock_run.call_args[1]["input"]) > 20000
 
     def test_saves_output_json(self, executor):
         mock_result = MagicMock(returncode=0, stdout='{"ok": true}', stderr="")
